@@ -1,2 +1,2 @@
-# lab02
+# laboratoria
 Jakub Płatek 54412
