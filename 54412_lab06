@@ -1,0 +1,232 @@
+## Dane studenta
+- Imię i nazwisko: Jakub Płatek
+- Numer albumu: 54412
+- Grupa: 3
+- Data: 11.11.2026
+- Laboratorium nr: 6
+
+## Cel ćwiczenia
+Celem laboratorium jest:
+
+- Nauczenie się pisania i uruchamiania testów jednostkowych w bibliotece JUnit 5,
+- Zastanowienie się, ile testów wystarczy i co właściwie sprawdzają,
+- Poznanie wyjątków jako sposobu zgłaszania sytuacji, w których metoda nie może wykonać swojego zadania,
+- Zrozumienie różnicy między wyjątkami kontrolowanymi i niekontrolowanymi oraz decydowanie, gdzie wyjątek należy obsłużyć.
+
+## Środowisko i narzędzia
+- System/wersje: Windows 11
+- Narzędzia: Eclipse
+
+## Zadania
+
+1. Opis zadania 1.
+
+# Plik TestSimpleCounter.java
+
+```java
+package counters;
+
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+
+class TestSimpleCounter {
+
+    @Test
+    void startsAtZero() {
+        assertEquals(0, new SimpleCounter().currentValue());
+    }
+
+    @Test
+    void increasesThreeTimes() {
+        SimpleCounter counter = new SimpleCounter();
+
+        counter.increase();
+        counter.increase();
+        counter.increase();
+
+        assertEquals(3, counter.currentValue());
+    }
+
+    @Test
+    void resetsToZero() {
+        SimpleCounter counter = new SimpleCounter();
+
+        counter.increase();
+        counter.increase();
+
+        counter.reset();
+
+        assertEquals(0, counter.currentValue());
+    }
+}
+```
+Błędy w testach po celowej zmianie funkcji step()
+org.opentest4j.AssertionFailedError: expected: <3> but was: <6>
+
+org.opentest4j.AssertionFailedError: expected: <3> but was: <6>
+
+Zawsze po lewej stronie umieszczają wartość oczekiwaną, a po prawej rzeczywistą
+
+Testy nie korzystają z dostępu pakietowego, używają wyłącznie publicznego API. W innym pakiecie skompilują się bez problemu po dodaniu instrukcji import counters.SimpleCounter. Po zmianie wewnętrznej implementacji (na przykład nazwy pola lub sposobu zliczania) testy oparte na publicznym interfejsie nadal działają, natomiast testy odwołujące się do pól wewnętrznych przestają się kompilować i wymagają przepisania.
+
+2. Opis zadania 2.
+
+# Plik TestOverflowCounter.java 
+```java
+package counters;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
+
+public class testOverflowCounter {
+	
+	@Test
+	void reachesMaxValueTen() {
+	    OverflowCounter counter = new OverflowCounter();
+	    for (int i = 0; i < 10; i++) {
+	        counter.increase();
+	    }
+	    
+	    assertEquals(10, counter.currentValue());
+	}
+
+	@Test
+	void overflowsToZeroAfterTen() {
+	    OverflowCounter counter = new OverflowCounter();
+	    for (int i = 0; i < 11; i++) {
+	        counter.increase();
+	    }
+	    
+	    assertEquals(0, counter.currentValue());
+	}
+
+}
+
+```
+
+| Wersja | Zachowanie licznika (cykl) | Które testy nie przeszły? |
+| :--- | :--- | :--- |
+| **Wersja A** (`% 9`) | Zlicza od `0` do `8`, po 9. wywołaniu `increase()` wraca do `0` | Żaden / Test przepełnienia przy `10` |
+| **Wersja B** (`<= 9`) | Identyczna jak oryginał, zlicza od `0` do `10`, po 11. wywołaniu wraca do `0` | Żaden  |
+| **Wersja C** (`% 10`) | Zlicza od `0` do `9`, po 10. wywołaniu `increase()` wraca do `0` | Żaden  / Test przepełnienia przy `10` |
+
+Początkowe testy nie wykryły błędów w wersjach A i C, ponieważ weryfikowały działanie licznika jedynie w małym zakresie, w którym wszystkie warianty zachowują się identycznie. Zabrakło testów warunków brzegowych sprawdzających, czy licznik osiąga wartość 10 po dziesięciu inkrementacjach oraz czy zeruje się dopiero przy jedenastym wywołaniu metody increase.
+
+Poprawna jest wersja B, ponieważ posiada dokładnie taką samą implementację i logikę działania jak oryginalna metoda step. Przeprowadzenie jej przez testy jest prawidłowe, bo zadaniem testów jednostkowych jest akceptowanie kodu zgodnego ze specyfikacją i odrzucanie wyłącznie błędnych rozwiązań.
+
+3. Opis zadania 3.
+
+Zamiast okna aplikacji użyto klasy pomocniczej implementującej interfejs CounterListener, która jedynie zlicza powiadomienia i zapamiętuje nadawcę. W przeciwieństwie do CounterApp nie tworzy ona interfejsu graficznego i wystarcza do testu, bo sprawdzamy wyłącznie same wywołania metody oraz referencję do źródła.
+
+Taki test oszczędziłby czas na laboratorium 4, zastępując ręczne klikanie w aplikacji okienkowej po każdej poprawce automatycznym sprawdzeniem wszystkich scenariuszy.
+
+Napisy w nawiasach ostrych w komunikatach assertSame pochodzą z metody toString() porównywanych obiektów, a w przypadku identycznych tekstów JUnit dopisuje dodatkowo nazwę klasy i kod skrótu obiektu (Klasa@hashCode), aby rozróżnić dwie różne instancje.
+
+4. Opis zadania 4.
+
+# Plik LimitedCounter.java
+
+```java
+package counters;
+
+public class LimitedCounter extends AbstractCounter {
+    private final int limit;
+
+    public LimitedCounter(int limit) {
+        if (limit < 0) {
+            throw new IllegalArgumentException();
+        }
+        this.limit = limit;
+    }
+
+    protected void step() {
+        if (counter < limit) {
+            ++counter;
+        } 
+        else {
+            throw new IllegalStateException();
+        }
+    }
+
+    public String toString() {
+        return "Limited Counter";
+    }
+
+    public void reset() {
+        counter = 0;
+    }
+
+    public int currentValue() {
+        return counter;
+    }
+}
+```
+Nie, słuchacz nie powinien być powiadamiany, ponieważ stan licznika nie uległ zmianie. Implementacja zachowuje się zgodnie z tym założeniem, ponieważ w metodzie increase() klasy AbstractCounter najpierw wywoływane jest step(), a dopiero potem powiadamiani są słuchacze, rzucenie wyjątku w step() przerywa wykonanie metody przed wysłaniem powiadomienia.
+
+Po dojściu do 5 i kolejnym kliknięciu przycisku aplikacja okienkowa nie zamyka się całkowicie, ale kliknięcie nie zmienia wartości licznika, a zrzut stosu wyjątku IllegalStateException zostaje wypisany na standardowe wyjście błędów.
+
+Licznik zlicza od 0 do 3, po czym przy kolejnym tyknięciu timera wątek timera rzuca nieobsłużony wyjątek IllegalStateException na konsolę i przestaje działać.
+
+Kompilator w żaden sposób nie ostrzegł o możliwości wystąpienia wyjątku.
+
+Klasy korzystające wyłącznie z interfejsu Counter nie mogły spodziewać się rzucania wyjątku przez metodę increase(), ponieważ kontrakt interfejsu nie przewiduje takiej sytuacji.
+
+Obsługa wyjątku w CounterApp oraz Ticking
+Polega na dodaniu bloków try-catch łapiących IllegalStateException w miejscach wywołujących increase(). Wymaga to modyfikacji klas CounterApp i Ticking, ale nie wymaga żadnych zmian w hierarchii liczników, a wszystkie istniejące testy jednostkowe LimitedCounter nadal przechodzą bez zmian. Wadą jest konieczność pamiętania o obsłudze błędu w każdej przyszłej klasie używającej interfejsu Counter.
+
+Zmiana zachowania LimitedCounter
+Polega na tym, że metoda step() po osiągnięciu limitu po prostu nic nie robi, zamiast rzucać wyjątek. Wymaga to modyfikacji tylko klasy LimitedCounter, a aplikacja przestaje wyrzucać błędy, jednak istniejące testy oczekujące wyjątku assertThrows przestaną przechodzić i trzeba będzie je przepisać.
+
+5. Opis zadania 5.
+
+# Plik HistoryFile
+```java 
+package app;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import javax.swing.DefaultListModel;
+
+public class HistoryFile {
+    private final Path path;
+
+    public HistoryFile(Path path) {
+        this.path = path;
+    }
+
+    public void save(List<String> lines) throws IOException {
+        Files.write(path, lines);
+    }
+
+    public void save(DefaultListModel<String> historyModel) throws IOException {
+        List<String> lines = Collections.list(historyModel.elements());
+        save(lines);
+    }
+}
+```
+
+Wyjątki IllegalStateException oraz IllegalArgumentException dziedziczą po RuntimeException i oznaczają błędy programistyczne, którym można zapobiec poprzez poprawne napisanie kodu, dlatego kompilator nie wymaga ich jawnej obsługi. Wyjątek IOException dziedziczy bezpośrednio po klasie Exception i reprezentuje problemy zewnętrzne niezależne od logiki programu, takie jak brak dostępu do dysku czy nieistniejący katalog, więc Java wymusza ich obsługę.
+
+Klasa zapisująca historię nie powinna sama łapać IOException, ponieważ jest odpowiedzialna wyłącznie za operacje na plikach i nie wie, jak powiadomić użytkownika w interfejsie graficznym. Złapanie wyjątku w pustym bloku catch ukryłoby awarię, uniemożliwiło wykrycie błędu w testach oraz pozostawiło użytkownika w fałszywym przekonaniu, że dane zostały zapisane.
+
+Przeniesienie zapisu do osobnej klasy wyraźnie poprawiło projekt aplikacji zgodnie z zasadą pojedynczej odpowiedzialności. Oddzielenie logiki zapisu plików od interfejsu graficznego Swing uprościło kod okna głównego oraz umożliwiło łatwe i automatyczne testowanie zapisu bez konieczności uruchamiania całej aplikacji.
+
+6. Opis zadania 6.
+
+Testowanie Ticking za pomocą Thread.sleep(3000) jest powolne.
+
+Aby przetestować Ticking szybko i bezbłędnie, należy dodać do niego zależność w postaci prostego interfejsu zegara. W aplikacji podajemy prawdziwy timer, a w teście jego sztuczny odpowiednik, którym ręcznie i natychmiast symulujemy upływ 3 sekund.
+
+Podczas testów w zadaniu 3 było słychać sygnał dźwiękowy z klasy Beeping. Testy nie powinny wywoływać efektów ubocznych, gdyby zamiast dźwięku dekorator wysyłał SMS-y, każde uruchomienie testów generowałoby spam, dlatego również tutaj należałoby dodać interfejs powiadamiania i zastąpić go w teście.
+
+W klasie CounterApp nieprzetestowana pozostaje obsługa zdarzeń kliknięcia przycisków, zmiana wyboru na liście, aktualizacja etykiety i historii oraz wyświetlanie komunikatów JOptionPane. Tę logikę sterowania i stanu można wydzielić do osobnej klasy kontrolera, pozostawiając w oknie Swinga wyłącznie wyświetlanie gotowych danych.
+
+
+# Wnioski
+
+Zadania zostały wykonane z problemami, jednak pomogły utrwalić umiejętności testów jednostkowych, obsługi wyjątków oraz zrozumienie róźnicy między wyjątkami kontrolowanymi i niekontrolowanymi.
