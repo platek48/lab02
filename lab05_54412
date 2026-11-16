@@ -1,0 +1,301 @@
+## Dane studenta
+- Imię i nazwisko: Jakub Płatek
+- Numer albumu: 54412
+- Grupa: 3
+- Data: 04.11.2026
+- Laboratorium nr: 5
+
+## Cel ćwiczenia
+Celem laboratorium jest:
+
+- Zrozumienie różnicy między tożsamością obiektu a równością wartości,
+- Poznanie kontraktu metod equals i hashCode i konsekwencji jego złamania,
+- Zrozumienie, dlaczego wartości powinny być niezmienne,
+- Poznanie rekordów (record), czyli składni Javy do definiowania złożonych wartości.
+
+## Środowisko i narzędzia
+- System/wersje: Windows 11
+- Narzędzia: Eclipse
+
+## Zadania
+
+1. Opis zadania 1.
+
+Klasa Point posiada metodę equals(), ponieważ dziedziczy ją z klasy java.lang.Object.
+Oczekiwany był inny wynik - że punkty o tych samych współrzędnych będą traktowane jako identyczne, jednak tak nie jest.
+
+2. Opis zadania 2.
+
+HashSet wykorzystuje hashCode() do określenia miejsca przechowywania elementu, a equals() do sprawdzania czy element już istnieje. ArrayList nie korzysta z hashCode(). hashSet wywołuje hashCode() i na jego podstawie szuka odpowiedniego miejsca,
+jeśli znajdzie tam elementy, używa equals() do porównania ich z szukanym obiektem. Jeśli equals() zwróci true, uznaje, że element już istnieje.
+
+3. Opis zadania 3.
+
+# Plik Point
+```java
+package lab05;
+
+public class Point {
+    int x;
+    int y;
+    
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+    
+    Point moved(int dx, int dy) {
+    	x += dx;
+        y += dy;
+    	return new Point(x, y);
+    }
+    
+
+	@Override
+    public boolean equals(Object o) {
+        return o instanceof Point p && p.x == x && p.y == y;
+    }
+    
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(x, y);
+    }
+  
+}
+```
+
+# Plik Points
+```java
+package lab05;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+
+public class Points {
+
+    public static void main(String[] args) {
+        
+        ArrayList<Point> listaTablicowa = new java.util.ArrayList<Point>();
+        HashSet<Point> setHaszowy = new java.util.HashSet<Point>();
+        
+        Point p = new Point(1, 2);
+        
+        setHaszowy.add(p);
+        p.moved(4, 0);
+        
+        System.out.println(setHaszowy.contains(new Point(5, 2)));
+        System.out.println(setHaszowy.contains(new Point(1, 2)));
+        
+        setHaszowy.remove(p);
+        System.out.println(setHaszowy.size());
+        
+        for (Point point : setHaszowy) {
+            System.out.println(point);
+        }
+        
+    }
+}
+```
+
+Obiekt p został dodany do HashSet ze współrzędnymi (1, 2). Zmieniono jego współrzędne na (5, 2). Problem polega na tym, że HashSet zapisuje element na podstawie jego hashCode() z momentu dodania. Po zmianie współrzędnych zmienia się również hashCode().
+
+Klasa String jest niemodyfikowalna. Metoda toUpperCase() nie zmienia istniejącego napisu, tylko zwraca nowy obiekt typu String z wielkimi literami.
+
+4. Opis zadania 4.
+
+Kompilator zgłosi błąd, ponieważ pola rekordu są automatycznie oznaczone jako private final. Nie można ich zmieniać po utworzeniu obiektu.
+Różnica względem Point z zadania 1 polega na tym, że zwykła klasa Point pozwala na zmianę pól x i y, natomiast rekord jest niemodyfikowalny.
+Ponieważ rekord lub odpowiednio zaprojektowana klasa Range nie pozwala na zmianę swoich pól po utworzeniu obiektu. Jeśli konstruktor sprawdzi poprawność danych każdy utworzony obiekt będzie poprawny przez cały czas swojego istnienia. Nie jest tak samo w klasie Point z zadania 1, bo tam pola x i y nie są prywatne i finalne.
+
+5. Opis zadania 5.
+
+# Plik CounterApp
+```java
+package app;
+
+import counters.*;
+import java.awt.BorderLayout;
+import javax.swing.*;
+import java.awt.event.*;
+
+public class zad implements ActionListener, CounterListener {
+
+    JFrame frame = new JFrame("Licznik");
+    JButton button = new JButton("Kliknij!");
+    JButton reset = new JButton("Reset");
+    JLabel label = new JLabel("0");
+
+    private final JButton rememberButton = new JButton("Zapamiętaj");
+    private final DefaultListModel<Reading> history = new DefaultListModel<>();
+    private final JList<Reading> historyList = new JList<>(history);
+
+    JComboBox<Counter> counters = new JComboBox<>(new Counter[]{
+            new Ticking(new SimpleCounter()),
+            new Ticking(new SimpleCounter()),
+            new Ticking(new DoubleCounter()),
+            new Ticking(new Beeping(new DoubleCounter()))
+    });
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        Counter counter = (Counter) counters.getSelectedItem();
+
+        if (counter == null) return;
+
+        if (e.getSource() == button) {
+            counter.increase();
+        }
+        else if (e.getSource() == reset) {
+            counter.reset();
+        }
+        else if (e.getSource() == rememberButton) {
+        	history.addElement(new Reading(counter, counter.currentValue()));
+        }
+        else if (e.getSource() == counters) {
+            label.setText(Integer.toString(counter.currentValue()));
+        }
+    }
+
+    public static void main(String[] args) {
+        new zad().run();
+    }
+
+    void run() {
+        JPanel controls = new JPanel(); // panel układający elementy w rzędzie
+
+        controls.add(counters);
+        controls.add(button);
+        controls.add(reset);
+        controls.add(rememberButton);
+        controls.add(label);
+        // ... i pozostałe elementy dodane na poprzednim laboratorium
+        
+        frame.setLayout(new BorderLayout());
+        frame.add(controls, BorderLayout.NORTH);	// u góry okna
+        frame.add(new JScrollPane(historyList), BorderLayout.CENTER); // reszta okna, z przewijaniem
+
+        for (int i = 0; i < counters.getItemCount(); i++) {
+            counters.getItemAt(i).addListener(this);
+        }
+
+        button.addActionListener(this);
+        reset.addActionListener(this);
+        rememberButton.addActionListener(this);
+        counters.addActionListener(this);
+
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    @Override
+    public void counterChanged(Counter source) {
+        if (source == counters.getSelectedItem()) {
+            label.setText(Integer.toString(source.currentValue()));
+        }
+    }
+}
+```
+Rekord zapamiętuje wartość licznika w momencie kliknięcia "Zapamiętaj", ale przechowuje również referencję do samego licznika.
+Wcześniej przechowywaliśmy sam licznik, więc jego wartość mogła się zmieniać i historia pokazywała aktualny stan. Teraz przechowujemy rekord Reading, który zapamiętuje wartość licznika w momencie dodania do historii.
+Pola rekordu są final, więc nie można przypisać im nowych wartości. Jednak pole counter przechowuje referencję do obiektu Counter, który sam może się zmieniać.
+
+6. Opis zadania 6.
+
+# Plik AbstractCounter
+```java
+package counters;
+
+public abstract class AbstractCounter implements Counter {
+
+    protected int counter = 0;
+
+    private CounterListener[] listeners = new CounterListener[0];
+
+    @Override
+    public void addListener(CounterListener listener) {
+        CounterListener[] newListeners =
+                new CounterListener[listeners.length + 1];
+
+        for (int i = 0; i < listeners.length; i++) {
+            newListeners[i] = listeners[i];
+        }
+
+        newListeners[listeners.length] = listener;
+        listeners = newListeners;
+    }
+
+    protected void notifyListeners() {
+        for (CounterListener listener : listeners) {
+            listener.counterChanged(this);
+        }
+    }
+
+    @Override
+    public final void increase() {
+        step();
+        notifyListeners();
+    }
+
+    protected void incrementCounter() {
+        counter++;
+    }
+    
+    protected abstract void step();
+
+    @Override
+    public void reset() {
+        counter = 0;
+        notifyListeners();
+    }
+
+    @Override
+    public int currentValue() {
+        return counter;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+    if (this == obj) {
+        return true;
+    }
+
+    if (obj == null || getClass() != obj.getClass()) {
+        return false;
+    }
+
+    AbstractCounter other = (AbstractCounter) obj;
+    return counter == other.counter;
+}
+
+    @Override
+    public int hashCode() {
+        return 31 * getClass().hashCode() + counter;
+    }
+
+        @Override
+        public abstract String toString();
+    }
+```
+
+Po dodaniu licznika do HashSet metoda contains() zwracała true. Po zwiększeniu licznika zwracała false, bo zmieniła się jego wartość i wynik hashCode(). Obiekt nadal znajdował się w zbiorze, ale HashSet nie mógł go odnaleźć.
+
+7. Opis zadania 7.
+
+| Byt | Rodzaj | Uzasadnienie |
+|---|---|---|
+| Licznik (`Counter`) | Obiekt | Ma własną tożsamość i zmienia swoją wartość. |
+| Punkt (`Point`) | Wartość | Liczy się jego położenie a nie tożsamość. |
+| Odczyt licznika (`Reading`) | Wartość | Przechowuje konkretną wartość i moment odczytu. |
+| Napis (`String`) | Wartość | Porównywany jest na podstawie treści. |
+| Przycisk (`JButton`) | Obiekt | Ma własną tożsamość i stan |
+| Data (`LocalDate`) | Wartość | Liczy się konkretna data, a nie tożsamość obiektu. |
+| Konto bankowe | Obiekt | Ma własną tożsamość, właściciela i zmieniające się saldo. |
+| Kwota pieniędzy | Wartość | Liczy się jej wartość liczbowa i waluta. |
+
+Wartość nie musi być niezmienna, ale zazwyczaj wartości są niezmienne. Obiekt może zmieniać swój stan, zachowując tę samą tożsamość. O tym, czy coś jest wartością, decyduje przede wszystkim to czy ważniejsza jest jego zawartość, czy jego indywidualna tożsamość.
+
+# Wnioski
+
+Zadania zostały wykonane z trudnościami w niektórych elementach oraz pomogły zrozumieć różnice między tożsamością obiektu a równością wartości, 
+poznano metody equals(), hashcode() i rekordy.
